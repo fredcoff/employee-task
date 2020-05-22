@@ -1,0 +1,208 @@
+<h1>Main</h1>
+
+<p>This is a complex employee task component.</p>
+
+<p *ngIf="!vm"><em>Loading...</em></p>
+
+<div *ngIf="vm">
+
+  <div class="row">
+    <div class="col-sm-4">
+      <div class="clearfix">
+        <h2 class="float-left">Employees</h2>
+        <button class="btn btn-default float-right" title="Add Employee..."
+          (click)="showNewEmployeeModal(newEmployeeModalTemplate)">
+          <fa-icon [icon]="faPlus"></fa-icon>
+        </button>
+      </div>
+      <ul class="list-group">
+        <li *ngFor="let list of vm.employees; index as i" class="list-group-item"
+          [ngClass]="{ 'active': selectedEmployee == list }" (click)="selectedEmployee = list">
+          <div class="clearfix">
+            <div class="float-left">
+              {{ list.name }}
+            </div>
+            <div class="float-right text-right">
+              <span class="badge badge-light">{{ remainingTasks(list) }}</span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+    <div class="col-sm-8" *ngIf="selectedEmployee">
+      <div class="clearfix">
+        <h2 class="float-left">{{ selectedEmployee.name }}</h2>
+        <button id="listOptions" class="btn btn-default float-right" title="Employee Options..."
+          (click)="showEmployeeOptionsModal(listOptionsModalTemplate)">
+          <fa-icon [icon]="faEllipsisH"></fa-icon>
+        </button>
+      </div>
+      <ul id="todo-tasks" class="list-group mb-2">
+        <li class="list-group-item" *ngFor="let item of selectedEmployee.tasks; index as i">
+          <div class="d-flex">
+            <div class="todo-item-state">
+              <span>{{ item.state }}</span>
+            </div>
+            <div class="flex-fill">
+              <input id="{{ 'itemTitle' + i }}" *ngIf="item == selectedTask" type="text"
+                class="form-control item-input-control" [(ngModel)]="item.title" (keyup.enter)="updateTask(item, true)"
+                (blur)="updateTask(item)" autofocus="autofocus" />
+              <div class="todo-item-title" *ngIf="item != selectedTask"
+                [ngClass]="{ 'done-todo': item.state == TaskState.Closed }" (click)="editTask(item, 'itemTitle' + i)"
+                class="form-control item-input-control">
+                <span>{{ item.title }}</span>
+              </div>
+            </div>
+            <div class="todo-item-commands">
+              <button *ngIf="item.id != 0" (click)="showTaskDetailsModal(itemDetailsModalTemplate, item)"
+                class="btn btn-default btn-xs" role="button">
+                <fa-icon [icon]="faEllipsisH"></fa-icon>
+              </button>
+            </div>
+          </div>
+        </li>
+        <li class="list-group-item" (click)="addTask()">
+          <button class="btn btn-default">Add Task...</button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="debug">
+  <pre>{{ vm | json }}</pre>
+</div>
+
+<ng-template #listOptionsModalTemplate>
+  <div class="modal-header clearfix">
+    <h4 class="modal-title float-left">Employee Options</h4>
+    <button type="button" class="close float-right" aria-label="Close" (click)="employeeOptionsModalRef.hide()">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <div class="modal-body">
+    <div class="form-group">
+      <label for="inputEmployeeName">Name</label>
+      <input type="text" class="form-control" id="inputEmployeeName" placeholder="Employee name..."
+        [(ngModel)]="employeeOptionsEditor.name" (keyup.enter)="updateEmployeeOptions()" />
+    </div>
+    <div *ngIf="debug">
+      <pre>{{ employeeOptionsEditor | json }}</pre>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <div class="clearfix">
+      <div class="float-left">
+        <button class="btn btn-default text-danger"
+          (click)="confirmDeleteEmployee(deleteEmployeeModalTemplate)">Delete</button>
+      </div>
+      <div class="float-right">
+        <button class="btn btn-default" (click)="employeeOptionsModalRef.hide()">Cancel</button>
+        <button class="btn btn-primary" (click)="updateEmployeeOptions()">Update</button>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #itemDetailsModalTemplate>
+  <div class="modal-header clearfix">
+    <h4 class="modal-title float-left">Task Details</h4>
+    <button type="button" class="close float-right" aria-label="Close" (click)="taskDetailsModalRef.hide()">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <div class="modal-body">
+    <div class="form">
+      <div class="form-group">
+        <label for="list">Employee</label>
+        <select class="form-control" [(ngModel)]="taskDetailsEditor.employeeId">
+          <option [ngValue]="list.id" *ngFor="let list of vm.employees">{{ list.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="priority">Priority</label>
+        <select class="form-control" [(ngModel)]="taskDetailsEditor.priority">
+          <option [ngValue]="level.value" *ngFor="let level of vm.priorityLevels">{{ level.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="state">State</label>
+        <select class="form-control" [(ngModel)]="taskDetailsEditor.state" disabled>
+          <option [ngValue]="state.value" *ngFor="let state of vm.taskStates">{{ state.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="estimate">Estimate</label><br />
+        <span id="estimate">{{ taskDetailsEditor.estimate }}</span>
+      </div>
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" class="form-control" rows="3" [(ngModel)]="taskDetailsEditor.description"></textarea>
+      </div>
+    </div>
+    <div *ngIf="debug">
+      <pre>{{ taskDetailsEditor | json }}</pre>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <div class="clearfix">
+      <div class="float-left">
+        <button class="btn btn-default text-danger" (click)="deleteTask(selectedTask)">Delete</button>
+      </div>
+      <div class="float-right">
+        <button class="btn btn-default" (click)="taskDetailsModalRef.hide()">Cancel</button>
+        <button class="btn btn-primary" (click)="updateTaskDetails()">Update</button>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #deleteEmployeeModalTemplate>
+  <div class="modal-header clearfix">
+    <h4 class="modal-title float-left">Delete "{{ selectedEmployee?.title }}"?</h4>
+    <button type="button" class="close float-right" aria-label="Close" (click)="deleteEmployeeModalRef.hide()">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <div class="modal-body">
+    <p>All tasks will be permanently deleted. </p>
+    <div *ngIf="debug">
+      <pre>{{ selectedEmployee | json }}</pre>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <div class="text-right">
+      <button type="button" class="btn btn-default" (click)="deleteEmployeeModalRef.hide()">Cancel</button>
+      <button type="button" class="btn btn-danger" (click)="deleteEmployeeConfirmed()">Delete</button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #newEmployeeModalTemplate>
+  <div class="modal-header clearfix">
+    <h4 class="modal-title float-left">New Employee</h4>
+    <button type="button" class="close float-right" aria-label="Close" (click)="newEmployeeCancelled()">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <div class="modal-body">
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input type="text" class="form-control" id="name" placeholder="Employee name..."
+        [(ngModel)]="newEmployeeEditor.name" [ngClass]="{ 'is-invalid': newEmployeeEditor.error }"
+        (keyup.enter)="addEmployee()" />
+      <div *ngIf="newEmployeeEditor.error" class="invalid-feedback">
+        {{ newEmployeeEditor.error }}
+      </div>
+    </div>
+    <div *ngIf="debug">
+      <pre>{{ newEmployeeEditor | json }}</pre>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <div class="text-right">
+      <button class="btn btn-default" (click)="newEmployeeCancelled()">Cancel</button>
+      <button class="btn btn-primary" (click)="addEmployee()">Create</button>
+    </div>
+  </div>
+</ng-template>
